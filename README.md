@@ -36,9 +36,9 @@ Sabores: `tradicional`, `cacau-black`, `red-velvet`, `smores-padaria`, `smores-d
 
 ### Configurar o GitHub Pages + Supabase (uma vez)
 
-1. Use um projeto do [Supabase](https://supabase.com), novo ou um que já exista. As tabelas da Tiboh têm o prefixo `tiboh_` e não mexem nas outras.
+1. Use um projeto do [Supabase](https://supabase.com) só da Tiboh. Desde 28/10/2026 ela tem conta e projeto próprios, separados do app Cuidar.
 2. No **SQL Editor**, rode `supabase/schema.sql`. Depois rode o `insert into public.tiboh_membros ...` do final com os e-mails de quem vai usar o app. Só esses e-mails veem os pedidos.
-3. Em **Authentication > URL Configuration**, adicione `https://vendra74.github.io/Tiboh/` em *Redirect URLs*. Se o projeto já tem outro app, **não mude** a *Site URL*, porque ela é do outro app. O link de login já pede para voltar para a Tiboh.
+3. Em **Authentication > URL Configuration**, adicione `https://vendra74.github.io/Tiboh/` em *Redirect URLs*. Coloque o mesmo endereço também como *Site URL*.
 4. Em **Project Settings > API**, copie a *Project URL* e a chave *anon public* para o `config.js`.
 5. No GitHub, em **Settings > Pages**, escolha *Deploy from a branch*, branch `main`, pasta `/ (root)`.
 
