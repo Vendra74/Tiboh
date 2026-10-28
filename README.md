@@ -36,13 +36,13 @@ Sabores: `tradicional`, `cacau-black`, `red-velvet`, `smores-padaria`, `smores-d
 
 ### Configurar o GitHub Pages + Supabase (uma vez)
 
-1. Crie um projeto grátis em [supabase.com](https://supabase.com).
-2. No **SQL Editor**, rode `supabase/schema.sql`. Depois rode o `insert into public.membros ...` do final com os e-mails de quem vai usar o app. Só esses e-mails veem os pedidos.
+1. Use um projeto do [Supabase](https://supabase.com), novo ou um que já exista. As tabelas da Tiboh têm o prefixo `tiboh_` e não mexem nas outras.
+2. No **SQL Editor**, rode `supabase/schema.sql`. Depois rode o `insert into public.tiboh_membros ...` do final com os e-mails de quem vai usar o app. Só esses e-mails veem os pedidos.
 3. Em **Authentication > URL Configuration**, coloque `https://vendra74.github.io/Tiboh/` como *Site URL* e também em *Redirect URLs*.
 4. Em **Project Settings > API**, copie a *Project URL* e a chave *anon public* para o `config.js`.
 5. No GitHub, em **Settings > Pages**, escolha *Deploy from a branch*, branch `main`, pasta `/ (root)`.
 
-A chave *anon* é pública por natureza. O que protege os pedidos é o login e a lista `membros`, aplicados pelas regras de acesso (RLS) do banco.
+A chave *anon* é pública por natureza. O que protege os pedidos é o login e a lista `tiboh_membros`, aplicados pelas regras de acesso (RLS) do banco.
 
 ## Identidade visual (`identidade-visual/`)
 

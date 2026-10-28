@@ -810,7 +810,7 @@ function startListeners() {
 
 /* ---------- Fora do Claude (GitHub Pages): Supabase ---------- */
 // Same subset of the Claude db API the page uses, stored in one Supabase table:
-// docs(colecao, id, dados jsonb). Realtime changes trigger a refetch of that collection.
+// tiboh_docs(colecao, id, dados jsonb). Realtime changes trigger a refetch of that collection.
 function loadScript(src) {
   return new Promise((ok, fail) => { const t = document.createElement("script"); t.src = src; t.onload = ok; t.onerror = fail; document.head.append(t); });
 }
@@ -821,11 +821,11 @@ function supabaseDb(sb) {
     for (const l of listeners.filter((x) => x.col === col)) {
       try {
         if (l.id) {
-          const { data, error } = await sb.from("docs").select("dados").eq("colecao", col).eq("id", l.id).maybeSingle();
+          const { data, error } = await sb.from("tiboh_docs").select("dados").eq("colecao", col).eq("id", l.id).maybeSingle();
           if (error) throw error;
           l.cb({ id: l.id, exists: !!data, data: () => data?.dados });
         } else {
-          const { data, error } = await sb.from("docs").select("id,dados").eq("colecao", col);
+          const { data, error } = await sb.from("tiboh_docs").select("id,dados").eq("colecao", col);
           if (error) throw error;
           const docs = data.map((r) => ({ id: r.id, exists: true, data: () => r.dados }));
           l.cb({ docs, size: docs.length, empty: !docs.length });
@@ -833,8 +833,8 @@ function supabaseDb(sb) {
       } catch (e) { console.warn("[tiboh] leitura falhou", e); }
     }
   }
-  sb.channel("docs-changes")
-    .on("postgres_changes", { event: "*", schema: "public", table: "docs" }, (p) => notify(p.new?.colecao || p.old?.colecao))
+  sb.channel("tiboh-docs-changes")
+    .on("postgres_changes", { event: "*", schema: "public", table: "tiboh_docs" }, (p) => notify(p.new?.colecao || p.old?.colecao))
     .subscribe();
   const listen = (col, id, cb) => { const l = { col, id, cb }; listeners.push(l); notify(col); return () => { const k = listeners.indexOf(l); if (k >= 0) listeners.splice(k, 1); }; };
   const ref = (col, id) => {
@@ -842,17 +842,17 @@ function supabaseDb(sb) {
       id,
       onSnapshot: (cb) => listen(col, id, cb),
       async set(dados) {
-        const { error } = await sb.from("docs").upsert({ colecao: col, id, dados, atualizado_em: new Date().toISOString() });
+        const { error } = await sb.from("tiboh_docs").upsert({ colecao: col, id, dados, atualizado_em: new Date().toISOString() });
         if (error) throw asDbError(error);
         notify(col);
       },
       async update(patch) {
-        const { data, error } = await sb.from("docs").select("dados").eq("colecao", col).eq("id", id).single();
+        const { data, error } = await sb.from("tiboh_docs").select("dados").eq("colecao", col).eq("id", id).single();
         if (error) throw asDbError(error);
         await r.set({ ...data.dados, ...patch });
       },
       async delete() {
-        const { error } = await sb.from("docs").delete().eq("colecao", col).eq("id", id);
+        const { error } = await sb.from("tiboh_docs").delete().eq("colecao", col).eq("id", id);
         if (error) throw asDbError(error);
         notify(col);
       },
@@ -899,7 +899,7 @@ async function startOutsideClaude() {
   $("account-email").textContent = session.user.email;
   $("logout").addEventListener("click", async () => { await sb.auth.signOut(); location.reload(); });
   db = supabaseDb(sb);
-  const probe = await sb.from("docs").select("id").limit(1);
+  const probe = await sb.from("tiboh_docs").select("id").limit(1);
   if (probe.error) { showStatus("Não deu para abrir os pedidos. Recarregue a página.", true); return; }
   startListeners();
 }
