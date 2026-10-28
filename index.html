@@ -9,6 +9,9 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Tiboh">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.4 system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <script src="config.js"></script>
 </head>
@@ -228,10 +231,14 @@ body.locked main > section:not(#login), body.locked .fab, body.locked .tabs { di
 <main class="gutter">
   <section id="login" class="panel login" hidden>
     <h2>Entrar</h2>
-    <p class="hint">Coloque seu e-mail. Mandamos um link, e é só tocar nele para abrir os pedidos.</p>
+    <p class="hint">Coloque seu e-mail. Mandamos um código de acesso para digitar aqui.</p>
     <form id="login-form" class="login-row">
       <input id="login-email" type="email" autocomplete="email" inputmode="email" placeholder="seu@email.com" required aria-label="E-mail">
-      <button class="btn primary" id="login-send" type="submit">Receber link</button>
+      <button class="btn primary" id="login-send" type="submit">Receber código</button>
+    </form>
+    <form id="code-form" class="login-row" hidden>
+      <input id="login-code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="10" placeholder="Código do e-mail" required aria-label="Código do e-mail">
+      <button class="btn primary" id="code-send" type="submit">Entrar</button>
     </form>
     <p class="hint" id="login-msg" aria-live="polite"></p>
   </section>
@@ -918,9 +925,21 @@ function showLogin(sb) {
     $("login-send").disabled = true; $("login-msg").textContent = "Enviando…";
     const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
     $("login-send").disabled = false;
-    $("login-msg").textContent = !error ? `Enviamos um link de acesso para ${email}. Abra o e-mail neste aparelho.`
-      : error.status === 429 || /rate limit/i.test(error.message || "") ? "Muitos links pedidos em pouco tempo. Espere uns minutos e use o último link que chegou, ou tente de novo mais tarde."
-      : `Não deu para enviar o link (${error.message || "erro desconhecido"}). Confira o e-mail e tente de novo.`;
+    if (!error) { $("code-form").hidden = false; $("login-code").focus(); }
+    $("login-msg").textContent = !error ? `Enviamos um código para ${email}. Digite aqui o código que chegou no e-mail.`
+      : error.status === 429 || /rate limit/i.test(error.message || "") ? "Muitos códigos pedidos em pouco tempo. Espere uns minutos e use o último que chegou, ou tente de novo mais tarde."
+      : `Não deu para enviar o código (${error.message || "erro desconhecido"}). Confira o e-mail e tente de novo.`;
+  });
+  $("code-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = $("login-email").value.trim();
+    const token = $("login-code").value.replace(/\D/g, "");
+    if (!email || !token) return;
+    $("code-send").disabled = true; $("login-msg").textContent = "Conferindo…";
+    const { error } = await sb.auth.verifyOtp({ email, token, type: "email" });
+    $("code-send").disabled = false;
+    // Deu certo: o onAuthStateChange recarrega a página já logada.
+    if (error) $("login-msg").textContent = "Código errado ou vencido. Confira o último e-mail ou peça outro código.";
   });
 }
 

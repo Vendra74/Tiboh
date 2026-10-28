@@ -6,7 +6,7 @@ Ferramentas de gestão da **Tiboh cookies** ([@tiboh.oh](https://www.instagram.c
 
 App web pensado para o celular. O mesmo código roda em dois lugares:
 
-- **GitHub Pages:** https://vendra74.github.io/Tiboh/ (dados no Supabase, entrada com link por e-mail, IA pela função `tiboh-ia` do Supabase).
+- **GitHub Pages:** https://vendra74.github.io/Tiboh/ (dados no Supabase, entrada com código por e-mail, IA pela função `tiboh-ia` do Supabase).
 - **Artifact do Claude:** https://claude.ai/artifact/88ZAUmUAaJQziMByMg9AXM (dados no banco do Artifact, IA pelo plano Claude de quem usa).
 
 - **Pedidos:** kanban com duas colunas, *Em aberto* e *Vendidos*. Cada card é um pedido com data, nome, telefone, canal, quantidade de cada sabor, caixas e valor.
@@ -39,6 +39,7 @@ Sabores: `tradicional`, `cacau-black`, `red-velvet`, `smores-padaria`, `smores-d
 1. Use um projeto do [Supabase](https://supabase.com) só da Tiboh. Desde 28/10/2026 ela tem conta e projeto próprios, separados do app Cuidar.
 2. No **SQL Editor**, rode `supabase/schema.sql`. Depois rode o `insert into public.tiboh_membros ...` do final com os e-mails de quem vai usar o app. Só esses e-mails veem os pedidos.
 3. Em **Authentication > URL Configuration**, adicione `https://vendra74.github.io/Tiboh/` em *Redirect URLs*. Coloque o mesmo endereço também como *Site URL*.
+   Em **Authentication > Emails > Magic Link**, acrescente ao modelo uma linha com o código, por exemplo `<p>Seu código: <strong>{{ .Token }}</strong></p>`. O app pede esse código, e assim o atalho do iPhone pode abrir em tela cheia, que guarda o login separado do Safari.
 4. Em **Project Settings > API**, copie a *Project URL* e a chave *anon public* para o `config.js`.
 5. No GitHub, em **Settings > Pages**, escolha *Deploy from a branch*, branch `main`, pasta `/ (root)`.
 
