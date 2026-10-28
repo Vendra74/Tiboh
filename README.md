@@ -4,8 +4,10 @@ Ferramentas de gestão da **Tiboh cookies** ([@tiboh.oh](https://www.instagram.c
 
 ## App de pedidos (`app/index.html`)
 
-App web pensado para o celular, publicado como Artifact do Claude:
-**https://claude.ai/artifact/88ZAUmUAaJQziMByMg9AXM**
+App web pensado para o celular. O mesmo código roda em dois lugares:
+
+- **GitHub Pages:** https://vendra74.github.io/Tiboh/ (dados no Supabase, entrada com link por e-mail, sem IA).
+- **Artifact do Claude:** https://claude.ai/artifact/88ZAUmUAaJQziMByMg9AXM (dados no banco do Artifact, com IA).
 
 - **Pedidos:** kanban com duas colunas, *Em aberto* e *Vendidos*. Cada card é um pedido com data, nome, telefone, canal, quantidade de cada sabor, caixas e valor.
 - **Valor automático:** cookie avulso R$ 15 e caixa com 4 R$ 55. Dá para mudar o valor em cada pedido.
@@ -13,7 +15,7 @@ App web pensado para o celular, publicado como Artifact do Claude:
 - **Estoque:** cookies prontos por sabor. Quando um pedido vai para *Vendidos*, os cookies saem do estoque, e voltam se o pedido voltar para *Em aberto*.
 - **Demanda:** vendas por sabor (7 dias, 30 dias ou tudo), clientes que mais pedem e sugestão da IA de quantos assar de cada sabor.
 
-Os dados ficam no banco do próprio Artifact, não neste repositório.
+Os pedidos nunca ficam neste repositório. Ficam no Supabase (Pages) ou no banco do Artifact (Claude).
 
 ### Dados
 
@@ -27,7 +29,20 @@ Sabores: `tradicional`, `cacau-black`, `red-velvet`, `smores-padaria`, `smores-d
 
 ### Como atualizar
 
-`app/index.html` é o conteúdo da página, sem `<html>`/`<head>`/`<body>`, porque o Artifact acrescenta esse esqueleto ao publicar. Depois de editar, peça ao Claude para republicar a página na mesma URL.
+`app/index.html` é a fonte. Ela não tem `<html>`/`<head>`/`<body>`, porque o Artifact acrescenta esse esqueleto ao publicar. Depois de editar:
+
+1. Rode `python3 scripts/build-pages.py`, que gera o `index.html` da raiz (a página do Pages), e faça commit dos dois arquivos.
+2. Para atualizar o Artifact, peça ao Claude para republicar na mesma URL.
+
+### Configurar o GitHub Pages + Supabase (uma vez)
+
+1. Crie um projeto grátis em [supabase.com](https://supabase.com).
+2. No **SQL Editor**, rode `supabase/schema.sql`. Depois rode o `insert into public.membros ...` do final com os e-mails de quem vai usar o app. Só esses e-mails veem os pedidos.
+3. Em **Authentication > URL Configuration**, coloque `https://vendra74.github.io/Tiboh/` como *Site URL* e também em *Redirect URLs*.
+4. Em **Project Settings > API**, copie a *Project URL* e a chave *anon public* para o `config.js`.
+5. No GitHub, em **Settings > Pages**, escolha *Deploy from a branch*, branch `main`, pasta `/ (root)`.
+
+A chave *anon* é pública por natureza. O que protege os pedidos é o login e a lista `membros`, aplicados pelas regras de acesso (RLS) do banco.
 
 ## Identidade visual (`identidade-visual/`)
 

@@ -179,6 +179,11 @@ td.r, th.r { text-align: right; }
 .strip { margin-top: 28px; background: var(--yellow); color: var(--bg); font-family: var(--f-display); font-size: 28px; line-height: 1.4; white-space: nowrap; overflow: hidden; letter-spacing: .1em; opacity: .9; text-align: center; padding-block: 2px; }
 :root[data-theme="dark"] .strip { color: var(--brand); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .strip { color: var(--brand); } }
+.login { max-width: 460px; }
+.login-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.login-row input { flex: 1 1 200px; min-width: 0; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 11px; }
+body.locked main > section:not(#login), body.locked .fab, body.locked .tabs { display: none !important; }
+.account { max-width: 1100px; margin: 24px auto 0; display: flex; gap: 8px; align-items: center; justify-content: flex-end; color: var(--muted); font-size: 13px; box-sizing: content-box; }
 .toast {
   position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 30;
   background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 999px; font-weight: 700; font-size: 14px; max-width: calc(100% - 32px);
@@ -206,6 +211,15 @@ td.r, th.r { text-align: right; }
 </div></header>
 
 <main class="gutter">
+  <section id="login" class="panel login" hidden>
+    <h2>Entrar</h2>
+    <p class="hint">Coloque seu e-mail. Mandamos um link, e é só tocar nele para abrir os pedidos.</p>
+    <form id="login-form" class="login-row">
+      <input id="login-email" type="email" autocomplete="email" inputmode="email" placeholder="seu@email.com" required aria-label="E-mail">
+      <button class="btn primary" id="login-send" type="submit">Receber link</button>
+    </form>
+    <p class="hint" id="login-msg" aria-live="polite"></p>
+  </section>
   <div id="status" class="notice" hidden></div>
   <div id="examples" class="notice" hidden>
     <span>Os pedidos marcados como <b>Exemplo</b> são só para mostrar como funciona.</span>
@@ -279,6 +293,7 @@ td.r, th.r { text-align: right; }
   </section>
 </main>
 
+<div class="account gutter" id="account" hidden><span id="account-email"></span><button class="btn ghost" id="logout" type="button">Sair</button></div>
 <div class="strip" aria-hidden="true">Worth every crumb ✦ Worth every crumb ✦ Worth every crumb ✦ Worth every crumb ✦ Worth every crumb</div>
 
 <button class="fab" id="new-order" hidden>+ Novo pedido</button>
@@ -521,7 +536,7 @@ function render() {
   renderBoard();
   if (state.view === "estoque") renderStock();
   if (state.view === "demanda") renderDemand();
-  $("new-order").hidden = !(state.canWrite && state.view === "pedidos");
+  $("new-order").hidden = !(state.canWrite && db && state.view === "pedidos");
 }
 
 /* ---------- Writes ---------- */
@@ -758,14 +773,7 @@ $("del-examples").addEventListener("click", deleteExamples);
 buildFlavorInputs();
 try { const v = localStorage.getItem("tiboh-view"); if (v && $("view-" + v)) setView(v); else render(); } catch { render(); }
 
-(async () => {
-  if (!window.claude?.use) { showStatus("Abra esta página pelo Claude para ver e salvar os pedidos.", true); return; }
-  const [dbNs, userNs, sampleNs] = await Promise.all([claude.use("db"), claude.use("user"), claude.use("sample")]);
-  db = dbNs; sample = sampleNs;
-  if (!sample) { $("ai-panel").hidden = true; }
-  if (!db) { showStatus("Entre na sua conta do Claude para ver e salvar os pedidos.", true); state.canWrite = false; render(); return; }
-  const cw = userNs ? await userNs.can("data.write") : null;
-  if (cw === false) { state.canWrite = false; showStatus("Você pode ver os pedidos, mas não tem permissão para alterar."); }
+function startListeners() {
   db.doc("config/menu").onSnapshot((s) => {
     if (s.exists) {
       const d = s.data();
@@ -787,5 +795,112 @@ try { const v = localStorage.getItem("tiboh-view"); if (v && $("view-" + v)) set
     if (state.view === "estoque") renderStock();
   }, () => {});
   render();
+}
+
+/* ---------- Fora do Claude (GitHub Pages): Supabase ---------- */
+// Same subset of the Claude db API the page uses, stored in one Supabase table:
+// docs(colecao, id, dados jsonb). Realtime changes trigger a refetch of that collection.
+function loadScript(src) {
+  return new Promise((ok, fail) => { const t = document.createElement("script"); t.src = src; t.onload = ok; t.onerror = fail; document.head.append(t); });
+}
+function supabaseDb(sb) {
+  const listeners = [];
+  const asDbError = (e) => ({ code: e?.code === "42501" || /row-level security/i.test(e?.message || "") ? "invalid_argument" : "unavailable", message: e?.message || "" });
+  async function notify(col) {
+    for (const l of listeners.filter((x) => x.col === col)) {
+      try {
+        if (l.id) {
+          const { data, error } = await sb.from("docs").select("dados").eq("colecao", col).eq("id", l.id).maybeSingle();
+          if (error) throw error;
+          l.cb({ id: l.id, exists: !!data, data: () => data?.dados });
+        } else {
+          const { data, error } = await sb.from("docs").select("id,dados").eq("colecao", col);
+          if (error) throw error;
+          const docs = data.map((r) => ({ id: r.id, exists: true, data: () => r.dados }));
+          l.cb({ docs, size: docs.length, empty: !docs.length });
+        }
+      } catch (e) { console.warn("[tiboh] leitura falhou", e); }
+    }
+  }
+  sb.channel("docs-changes")
+    .on("postgres_changes", { event: "*", schema: "public", table: "docs" }, (p) => notify(p.new?.colecao || p.old?.colecao))
+    .subscribe();
+  const listen = (col, id, cb) => { const l = { col, id, cb }; listeners.push(l); notify(col); return () => { const k = listeners.indexOf(l); if (k >= 0) listeners.splice(k, 1); }; };
+  const ref = (col, id) => {
+    const r = {
+      id,
+      onSnapshot: (cb) => listen(col, id, cb),
+      async set(dados) {
+        const { error } = await sb.from("docs").upsert({ colecao: col, id, dados, atualizado_em: new Date().toISOString() });
+        if (error) throw asDbError(error);
+        notify(col);
+      },
+      async update(patch) {
+        const { data, error } = await sb.from("docs").select("dados").eq("colecao", col).eq("id", id).single();
+        if (error) throw asDbError(error);
+        await r.set({ ...data.dados, ...patch });
+      },
+      async delete() {
+        const { error } = await sb.from("docs").delete().eq("colecao", col).eq("id", id);
+        if (error) throw asDbError(error);
+        notify(col);
+      },
+    };
+    return r;
+  };
+  return {
+    doc(path) { const [col, id] = path.split("/"); return ref(col, id); },
+    collection(col) {
+      return {
+        doc: (id) => ref(col, id || crypto.randomUUID()),
+        async add(d) { const r = ref(col, crypto.randomUUID()); await r.set(d); return r; },
+        onSnapshot: (cb) => listen(col, null, cb),
+      };
+    },
+  };
+}
+
+function showLogin(sb) {
+  document.body.classList.add("locked");
+  $("login").hidden = false;
+  $("login-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = $("login-email").value.trim();
+    if (!email) return;
+    $("login-send").disabled = true; $("login-msg").textContent = "Enviando…";
+    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
+    $("login-send").disabled = false;
+    $("login-msg").textContent = error ? "Não deu para enviar o link. Confira o e-mail e tente de novo." : `Enviamos um link de acesso para ${email}. Abra o e-mail neste aparelho.`;
+  });
+}
+
+async function startOutsideClaude() {
+  const cfg = window.TIBOH_CONFIG || {};
+  $("ai-panel").hidden = true;
+  if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) { showStatus("O banco de dados ainda não foi configurado (config.js).", true); state.canWrite = false; render(); return; }
+  try { await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"); }
+  catch { showStatus("Não deu para carregar o banco de dados. Confira a internet e recarregue.", true); return; }
+  const sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+  sb.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_IN" && document.body.classList.contains("locked")) location.reload(); });
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { showLogin(sb); return; }
+  $("account").hidden = false;
+  $("account-email").textContent = session.user.email;
+  $("logout").addEventListener("click", async () => { await sb.auth.signOut(); location.reload(); });
+  db = supabaseDb(sb);
+  const probe = await sb.from("docs").select("id").limit(1);
+  if (probe.error) { showStatus("Não deu para abrir os pedidos. Recarregue a página.", true); return; }
+  startListeners();
+}
+
+(async () => {
+  if (!window.claude?.use) { await startOutsideClaude(); return; }
+  const [dbNs, userNs, sampleNs] = await Promise.all([claude.use("db"), claude.use("user"), claude.use("sample")]);
+  db = dbNs; sample = sampleNs;
+  if (!sample) { $("ai-panel").hidden = true; }
+  if (!db) { showStatus("Entre na sua conta do Claude para ver e salvar os pedidos.", true); state.canWrite = false; render(); return; }
+  const cw = userNs ? await userNs.can("data.write") : null;
+  if (cw === false) { state.canWrite = false; showStatus("Você pode ver os pedidos, mas não tem permissão para alterar."); }
+  startListeners();
 })();
 </script>
