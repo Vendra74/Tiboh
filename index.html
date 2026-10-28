@@ -901,6 +901,13 @@ async function startOutsideClaude() {
   db = supabaseDb(sb);
   const probe = await sb.from("tiboh_docs").select("id").limit(1);
   if (probe.error) { showStatus("Não deu para abrir os pedidos. Recarregue a página.", true); return; }
+  // RLS hides everything from non-members, which would look like an empty board.
+  const member = await sb.rpc("tiboh_eh_membro");
+  if (member.error || member.data !== true) {
+    document.body.classList.add("locked");
+    showStatus(`O e-mail ${session.user.email} ainda não tem acesso aos pedidos. Peça para cadastrarem esse e-mail na lista de membros da Tiboh e recarregue.`, true);
+    return;
+  }
   startListeners();
 }
 
