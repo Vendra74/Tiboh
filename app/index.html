@@ -247,11 +247,11 @@ body.locked main > section:not(#login), body.locked .fab, body.locked .tabs { di
 
   <section id="view-estoque" hidden>
     <div class="panel">
-      <h2>Cookies prontos</h2>
-      <p class="hint">Quando assar, some aqui. Quando um pedido passa para Vendidos, os cookies saem do estoque sozinhos. "Disponível" é o que sobra depois dos pedidos em aberto.</p>
+      <h2>Cookies congelados</h2>
+      <p class="hint">Massa já porcionada e congelada, por sabor. Quando congelar mais, some aqui. Os cookies são assados na hora da venda: quando um pedido passa para Vendidos, eles saem do estoque sozinhos. "Disponível" é o que sobra depois dos pedidos em aberto.</p>
       <div class="tablewrap">
         <table>
-          <thead><tr><th>Sabor</th><th>Prontos</th><th class="r">Em pedidos</th><th class="r">Disponível</th></tr></thead>
+          <thead><tr><th>Sabor</th><th>Congelados</th><th class="r">Em pedidos</th><th class="r">Disponível</th></tr></thead>
           <tbody id="stock-body"></tbody>
         </table>
       </div>
@@ -284,8 +284,8 @@ body.locked main > section:not(#login), body.locked .fab, body.locked .tabs { di
         <div class="tablewrap"><table><thead><tr><th>Cliente</th><th class="r">Pedidos</th><th class="r">Total</th></tr></thead><tbody id="top-clients"></tbody></table></div>
       </div>
       <div class="panel" id="ai-panel">
-        <h2>Planejar a próxima fornada</h2>
-        <p class="hint">A IA lê as vendas e os pedidos em aberto e sugere quantos assar de cada sabor.</p>
+        <h2>Planejar a próxima produção</h2>
+        <p class="hint">A IA lê as vendas e os pedidos em aberto e sugere quantos porcionar e congelar de cada sabor.</p>
         <div><button class="btn primary" id="ai-plan">Sugerir quantidades</button></div>
         <div class="ai-out" id="ai-out" hidden></div>
       </div>
@@ -474,7 +474,7 @@ function renderStock() {
   const focused = document.activeElement?.dataset?.stock;
   body.replaceChildren(...state.menu.sabores.map((s) => {
     const q = Number(state.stock[s.id]) || 0, rv = res[s.id] || 0, av = q - rv;
-    const input = el("input", { type: "number", min: "0", step: "1", inputmode: "numeric", class: "num", id: "stock-" + s.id, "aria-label": "Prontos de " + s.nome, value: q });
+    const input = el("input", { type: "number", min: "0", step: "1", inputmode: "numeric", class: "num", id: "stock-" + s.id, "aria-label": "Congelados de " + s.nome, value: q });
     input.dataset.stock = s.id;
     input.addEventListener("change", () => setStock(s.id, Math.max(0, parseInt(input.value, 10) || 0)));
     const step = state.canWrite
@@ -739,15 +739,15 @@ $("ai-plan").addEventListener("click", async () => {
   const sold = soldInPeriod(56).map((o) => ({ data: o.data, canal: o.canal, itens: Object.fromEntries(Object.entries(o.itens || {}).map(([k, v]) => [flavorName(k), v])), valor: o.valor }));
   const open = state.orders.filter((o) => o.status !== "vendido" && !o.exemplo).map((o) => ({ data: o.data, itens: Object.fromEntries(Object.entries(o.itens || {}).map(([k, v]) => [flavorName(k), v])) }));
   const stock = Object.fromEntries(state.menu.sabores.map((s) => [s.nome, Number(state.stock[s.id]) || 0]));
-  const prompt = `Você ajuda a Leticia, que faz cookies artesanais (Tiboh, Belo Horizonte), a planejar a produção. Hoje é ${today()}.
+  const prompt = `Você ajuda a Leticia, que faz cookies artesanais (Tiboh, Belo Horizonte), a planejar a produção. Ela faz a massa, porciona cada cookie e congela; os cookies só são assados na hora de vender. Hoje é ${today()}.
 
 Vendas das últimas 8 semanas (JSON): ${JSON.stringify(sold).slice(0, 40000)}
 Pedidos em aberto: ${JSON.stringify(open).slice(0, 10000)}
-Cookies prontos em estoque: ${JSON.stringify(stock)}
+Cookies congelados em estoque (massa porcionada, assada só na hora da venda): ${JSON.stringify(stock)}
 
 Responda em português, curto e direto, em texto simples sem markdown:
 1. Quais sabores vendem mais e se algum está subindo ou caindo (cite números).
-2. Quantos cookies assar de cada sabor para os próximos 7 dias, já descontando o estoque e somando os pedidos em aberto. Uma linha por sabor.
+2. Quantos cookies porcionar e congelar de cada sabor para os próximos 7 dias, já descontando o estoque congelado e somando os pedidos em aberto. Uma linha por sabor.
 3. Uma observação útil (dia da semana mais forte, sabor que encalha, cliente que repete), se os dados mostrarem.
 Se houver poucos dados (menos de 5 pedidos), diga isso e dê uma sugestão conservadora.`;
   try {
