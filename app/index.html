@@ -901,7 +901,9 @@ function showLogin(sb) {
     $("login-send").disabled = true; $("login-msg").textContent = "Enviando…";
     const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
     $("login-send").disabled = false;
-    $("login-msg").textContent = error ? "Não deu para enviar o link. Confira o e-mail e tente de novo." : `Enviamos um link de acesso para ${email}. Abra o e-mail neste aparelho.`;
+    $("login-msg").textContent = !error ? `Enviamos um link de acesso para ${email}. Abra o e-mail neste aparelho.`
+      : error.status === 429 || /rate limit/i.test(error.message || "") ? "Muitos links pedidos em pouco tempo. Espere uns minutos e use o último link que chegou, ou tente de novo mais tarde."
+      : `Não deu para enviar o link (${error.message || "erro desconhecido"}). Confira o e-mail e tente de novo.`;
   });
 }
 
