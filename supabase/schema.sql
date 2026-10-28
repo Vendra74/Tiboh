@@ -20,10 +20,15 @@ create table if not exists public.tiboh_membros (
 alter table public.tiboh_docs enable row level security;
 alter table public.tiboh_membros enable row level security;
 
+-- Projetos novos do Supabase nem sempre dão acesso às tabelas criadas por SQL.
+-- Quem decide o que cada um vê são as regras (RLS) abaixo.
+grant select, insert, update, delete on public.tiboh_docs to authenticated;
+
 create or replace function public.tiboh_eh_membro() returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.tiboh_membros where lower(email) = lower(auth.jwt() ->> 'email'));
 $$;
+grant execute on function public.tiboh_eh_membro() to authenticated;
 
 drop policy if exists "tiboh membros leem" on public.tiboh_docs;
 drop policy if exists "tiboh membros criam" on public.tiboh_docs;
