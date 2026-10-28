@@ -6,8 +6,8 @@ Ferramentas de gestão da **Tiboh cookies** ([@tiboh.oh](https://www.instagram.c
 
 App web pensado para o celular. O mesmo código roda em dois lugares:
 
-- **GitHub Pages:** https://vendra74.github.io/Tiboh/ (dados no Supabase, entrada com link por e-mail, sem IA).
-- **Artifact do Claude:** https://claude.ai/artifact/88ZAUmUAaJQziMByMg9AXM (dados no banco do Artifact, com IA).
+- **GitHub Pages:** https://vendra74.github.io/Tiboh/ (dados no Supabase, entrada com link por e-mail, IA pela função `tiboh-ia` do Supabase).
+- **Artifact do Claude:** https://claude.ai/artifact/88ZAUmUAaJQziMByMg9AXM (dados no banco do Artifact, IA pelo plano Claude de quem usa).
 
 - **Pedidos:** kanban com duas colunas, *Em aberto* e *Vendidos*. Cada card é um pedido com data, nome, telefone, canal, quantidade de cada sabor, caixas e valor.
 - **Valor automático:** cookie avulso R$ 15 e caixa com 4 R$ 55. Dá para mudar o valor em cada pedido.
@@ -41,6 +41,10 @@ Sabores: `tradicional`, `cacau-black`, `red-velvet`, `smores-padaria`, `smores-d
 3. Em **Authentication > URL Configuration**, adicione `https://vendra74.github.io/Tiboh/` em *Redirect URLs*. Se o projeto já tem outro app, **não mude** a *Site URL*, porque ela é do outro app. O link de login já pede para voltar para a Tiboh.
 4. Em **Project Settings > API**, copie a *Project URL* e a chave *anon public* para o `config.js`.
 5. No GitHub, em **Settings > Pages**, escolha *Deploy from a branch*, branch `main`, pasta `/ (root)`.
+
+6. **IA (opcional):** crie uma chave em [console.anthropic.com](https://console.anthropic.com) e guarde em **Edge Functions > Secrets** com o nome `ANTHROPIC_API_KEY`. Depois, em **Edge Functions > Deploy a new function > Via Editor**, crie a função `tiboh-ia` com o conteúdo de `supabase/functions/tiboh-ia/index.ts` e deixe *Verify JWT* ligado. Sem a função, o app funciona normalmente e os botões de IA somem na primeira tentativa.
+
+A função só atende quem está em `tiboh_membros`, e a chave da Anthropic fica no servidor, nunca no navegador. Cada uso custa centavos na conta da Anthropic.
 
 A chave *anon* é pública por natureza. O que protege os pedidos é o login e a lista `tiboh_membros`, aplicados pelas regras de acesso (RLS) do banco.
 

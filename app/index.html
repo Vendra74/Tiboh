@@ -860,6 +860,37 @@ function supabaseDb(sb) {
   };
 }
 
+// Same call shape as Claude's sample capability, answered by the tiboh-ia Supabase function.
+function supabaseSample(sb) {
+  async function ask(prompt, tarefa, opts = {}) {
+    if (opts.signal?.aborted) throw { code: "cancelled" };
+    const { data, error } = await sb.functions.invoke("tiboh-ia", { body: { prompt, tarefa } });
+    if (opts.signal?.aborted) throw { code: "cancelled" };
+    if (error) {
+      let code = "upstream_error";
+      const res = error.context;
+      if (res && typeof res.json === "function") {
+        if (res.status === 404) code = "not_granted";
+        else { try { code = (await res.json()).code || code; } catch {} }
+      }
+      throw { code, message: error.message };
+    }
+    opts.onText?.({ text: data.text, delta: data.text });
+    return { text: data.text, truncated: !!data.truncated };
+  }
+  const sample = (prompt, opts) => ask(prompt, "fornada", opts);
+  sample.json = async (prompt, opts) => {
+    const { text } = await ask(prompt, "pedido", opts);
+    try { return JSON.parse(text); } catch {}
+    const m = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (m) { try { return JSON.parse(m[1]); } catch {} }
+    const a = text.search(/[\[{]/), b = Math.max(text.lastIndexOf("}"), text.lastIndexOf("]"));
+    if (a >= 0 && b > a) { try { return JSON.parse(text.slice(a, b + 1)); } catch {} }
+    throw { code: "invalid_json", text };
+  };
+  return sample;
+}
+
 function showLogin(sb) {
   document.body.classList.add("locked");
   $("login").hidden = false;
@@ -897,6 +928,8 @@ async function startOutsideClaude() {
     showStatus(`O e-mail ${session.user.email} ainda não tem acesso aos pedidos. Peça para cadastrarem esse e-mail na lista de membros da Tiboh e recarregue.`, true);
     return;
   }
+  sample = supabaseSample(sb);
+  $("ai-panel").hidden = false;
   startListeners();
 }
 
