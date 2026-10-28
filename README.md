@@ -12,8 +12,8 @@ App web pensado para o celular. O mesmo código roda em dois lugares:
 - **Pedidos:** kanban com duas colunas, *Em aberto* e *Vendidos*. Cada card é um pedido com data, nome, telefone, canal, quantidade de cada sabor, caixas e valor.
 - **Valor automático:** cookie avulso R$ 15 e caixa com 4 R$ 55. Dá para mudar o valor em cada pedido.
 - **IA no pedido:** cole a mensagem do WhatsApp e a IA preenche o card.
-- **Estoque:** cookies prontos por sabor. Quando um pedido vai para *Vendidos*, os cookies saem do estoque, e voltam se o pedido voltar para *Em aberto*.
-- **Demanda:** vendas por sabor (7 dias, 30 dias ou tudo), clientes que mais pedem e sugestão da IA de quantos assar de cada sabor.
+- **Estoque:** cookies congelados por sabor (massa porcionada, assada só na hora da venda). Quando um pedido vai para *Vendidos*, os cookies saem do estoque, e voltam se o pedido voltar para *Em aberto*.
+- **Demanda:** vendas por sabor (7 dias, 30 dias ou tudo), clientes que mais pedem e sugestão da IA de quantos porcionar e congelar de cada sabor.
 
 Os pedidos nunca ficam neste repositório. Ficam no Supabase (Pages) ou no banco do Artifact (Claude).
 
