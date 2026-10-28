@@ -42,7 +42,7 @@ Sabores: `tradicional`, `cacau-black`, `red-velvet`, `smores-padaria`, `smores-d
 4. Em **Project Settings > API**, copie a *Project URL* e a chave *anon public* para o `config.js`.
 5. No GitHub, em **Settings > Pages**, escolha *Deploy from a branch*, branch `main`, pasta `/ (root)`.
 
-6. **IA (opcional):** crie uma chave em [console.anthropic.com](https://console.anthropic.com) e guarde em **Edge Functions > Secrets** com o nome `ANTHROPIC_API_KEY`. Depois, em **Edge Functions > Deploy a new function > Via Editor**, crie a função `tiboh-ia` com o conteúdo de `supabase/functions/tiboh-ia/index.ts` e deixe *Verify JWT* ligado. Sem a função, o app funciona normalmente e os botões de IA somem na primeira tentativa.
+6. **IA (opcional):** crie uma chave em [console.anthropic.com](https://console.anthropic.com) e guarde em **Edge Functions > Secrets** com o nome `ANTHROPIC_API_KEY`. Depois, em **Edge Functions > Deploy a new function > Via Editor**, crie a função `tiboh-ia` com o conteúdo de `supabase/functions/tiboh-ia/index.ts` e **desligue** *Verify JWT* (em projetos novos ele recusa o login; a própria função confere login e `tiboh_membros`). Sem a função, o app funciona normalmente e os botões de IA somem na primeira tentativa.
 
 A função só atende quem está em `tiboh_membros`, e a chave da Anthropic fica no servidor, nunca no navegador. Cada uso custa centavos na conta da Anthropic.
 
