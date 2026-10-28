@@ -741,7 +741,7 @@ ${msg.slice(0, 6000)}
   } catch (e) {
     if (e?.code === "cancelled") return;
     if (e?.code === "not_granted" || e?.code === "sampling_disabled") { $("paste-box").hidden = true; sample = null; $("ai-panel").hidden = true; }
-    $("f-parse-msg").textContent = e?.code === "rate_limited" ? "Muitos pedidos à IA agora. Tente em alguns minutos." : e?.code === "invalid_json" ? "Não consegui entender. Tente de novo ou preencha à mão." : "A IA não respondeu. Preencha à mão.";
+    $("f-parse-msg").textContent = e?.code === "rate_limited" ? "Muitos pedidos à IA agora. Tente em alguns minutos." : e?.code === "invalid_json" ? "Não consegui entender. Tente de novo ou preencha à mão." : "A IA não respondeu. Preencha à mão." + (e?.detalhe ? ` (${e.detalhe})` : "");
   } finally { $("f-parse").disabled = false; }
 });
 
@@ -770,7 +770,7 @@ Se houver poucos dados (menos de 5 pedidos), diga isso e dê uma sugestão conse
   } catch (e) {
     if (e?.code === "cancelled") return;
     if (e?.code === "not_granted" || e?.code === "sampling_disabled") { $("ai-panel").hidden = true; sample = null; return; }
-    out.textContent = (e?.text ? e.text + "\n\n" : "") + (e?.code === "rate_limited" ? "Muitos pedidos à IA agora. Tente em alguns minutos." : "A IA não respondeu. Tente de novo.");
+    out.textContent = (e?.text ? e.text + "\n\n" : "") + (e?.code === "rate_limited" ? "Muitos pedidos à IA agora. Tente em alguns minutos." : "A IA não respondeu. Tente de novo.") + (e?.detalhe ? ` (${e.detalhe})` : "");
   } finally { $("ai-plan").disabled = false; }
 });
 
@@ -888,7 +888,9 @@ function supabaseSample(sb) {
         if (res.status === 404) code = "not_granted";
         else { try { code = (await res.json()).code || code; } catch {} }
       }
-      throw { code, message: error.message };
+      const status = res && typeof res.status === "number" ? res.status : "sem resposta";
+      console.warn("[tiboh] IA falhou", status, error);
+      throw { code, message: error.message, detalhe: `${status}: ${error.message}` };
     }
     opts.onText?.({ text: data.text, delta: data.text });
     return { text: data.text, truncated: !!data.truncated };
